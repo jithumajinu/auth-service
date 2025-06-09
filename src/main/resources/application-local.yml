@@ -1,0 +1,9 @@
+spring:
+  cache:
+    type: hazelcast
+    hazelcast:
+      config: classpath:hazelcast.yaml
+
+logging:
+  level:
+    org.springframework.cache: DEBUG

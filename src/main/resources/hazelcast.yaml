@@ -1,0 +1,35 @@
+hazelcast:
+  cluster-name: dev
+  network:
+    port:
+      auto-increment: true
+      port: 5701
+    join:
+      multicast:
+        enabled: false
+      tcp-ip:
+        enabled: true
+        member-list:
+          - 127.0.0.1
+  map:
+    productCache:
+      time-to-live-seconds: 300
+      max-idle-seconds: 200
+      eviction:
+        eviction-policy: LRU
+        max-size-policy: FREE_HEAP_PERCENTAGE
+        size: 20
+    userCache:
+      time-to-live-seconds: 300
+      max-idle-seconds: 200
+      eviction:
+        eviction-policy: LRU
+        max-size-policy: FREE_HEAP_PERCENTAGE
+        size: 20
+    userRolesCache:
+      time-to-live-seconds: 300
+      max-idle-seconds: 200
+      eviction:
+        eviction-policy: LRU
+        max-size-policy: FREE_HEAP_PERCENTAGE
+        size: 20

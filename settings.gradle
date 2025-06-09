@@ -1,0 +1,4 @@
+rootProject.name = 'auth-service'
+
+// Include common-module from parent directory
+includeBuild('../common-module')
