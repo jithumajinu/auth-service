@@ -45,6 +45,7 @@ public class AuthController extends AbstractCoreUtilController {
     @Autowired
     AuthenticationManager authenticationManager;
 
+    @Autowired
     UserRepository userRepository;
 
     @Autowired
@@ -100,6 +101,7 @@ public class AuthController extends AbstractCoreUtilController {
         UserPrincipal currentUser = (UserPrincipal) SecurityContextHolder.getContext().getAuthentication()
                 .getPrincipal();
         String jwt = tokenProvider.generateToken(authentication);
+        String refreshToken = tokenProvider.generateRefreshToken(authentication);
 
         List<String> roleNames = currentUser.getAuthorities().stream()
                 .map(authority -> authority.getAuthority().replace("ROLE_", ""))
@@ -108,6 +110,7 @@ public class AuthController extends AbstractCoreUtilController {
         responseBuilder.data(
                 JwtAuthenticationResponse.builder()
                         .accessToken(jwt)
+                        .refreshToken(refreshToken)
                         .tokenType("Bearer")
                         .name(currentUser.getName())
                         .email(currentUser.getEmail())
@@ -115,6 +118,46 @@ public class AuthController extends AbstractCoreUtilController {
                         .build());
 
         return responseBuilder.build();
+    }
+
+    @PostMapping("/refresh")
+    public ApiResponse<JwtAuthenticationResponse> refreshToken(@RequestBody String refreshToken) {
+        var responseBuilder = ApiResponse.<JwtAuthenticationResponse>builder();
+        
+        if (!tokenProvider.validateToken(refreshToken) || !tokenProvider.isRefreshToken(refreshToken)) {
+            return responseBuilder.flag(false)
+                    .error(ApiResponse.ApiError.builder()
+                            .errorCode(ApiErrorCode.UNAUTHORIZED)
+                            .message("Invalid refresh token")
+                            .build())
+                    .build();
+        }
+        
+        Long userId = tokenProvider.getUserIdFromJWT(refreshToken);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException("User not found"));
+        
+        UserPrincipal userPrincipal = UserPrincipal.create(user);
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+                userPrincipal, null, userPrincipal.getAuthorities());
+        
+        String newAccessToken = tokenProvider.generateToken(authentication);
+        String newRefreshToken = tokenProvider.generateRefreshToken(authentication);
+        
+        List<String> roleNames = userPrincipal.getAuthorities().stream()
+                .map(authority -> authority.getAuthority().replace("ROLE_", ""))
+                .toList();
+        
+        return responseBuilder.flag(true)
+                .data(JwtAuthenticationResponse.builder()
+                        .accessToken(newAccessToken)
+                        .refreshToken(newRefreshToken)
+                        .tokenType("Bearer")
+                        .name(userPrincipal.getName())
+                        .email(userPrincipal.getEmail())
+                        .claims(roleNames)
+                        .build())
+                .build();
     }
 
 }
